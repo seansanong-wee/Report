@@ -43,6 +43,14 @@ Folder ID ที่ใช้จัดเก็บไฟล์:
 
 หลัง deploy แล้ว ถ้าได้ Web App URL ใหม่ ให้นำ URL นั้นไปใส่ในช่องตั้งค่า Google Apps Script บนหน้าเว็บ แล้วกดบันทึก URL เชื่อมต่อ
 
+ตรวจว่า deploy เป็นเวอร์ชันล่าสุดแล้วโดยเปิด:
+
+```text
+https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec?action=version
+```
+
+ผลลัพธ์ต้องเป็น JSON และมี `version`, `actions` ที่รวม `list`, `delete`, และ `updateStatus`
+
 หมายเหตุ: หน้าเว็บถูกนำขึ้น GitHub แล้ว แต่การส่งไฟล์เข้า Google Drive จะใช้งานได้จริงหลังจากนำ `Code.gs` ไป deploy ใน Google Apps Script แล้วเท่านั้น
 
 ## การโหลดข้อมูลเดิม
@@ -54,3 +62,7 @@ Folder ID ที่ใช้จัดเก็บไฟล์:
 ## การลบข้อมูล
 
 เมื่อกดลบในแดชบอร์ด ระบบจะเรียก Apps Script (`?action=delete`) เพื่อลบแถวข้อมูลใน Google Sheet และย้ายไฟล์แนบใน Google Drive ไปถังขยะก่อน จากนั้นจึงลบรายการออกจากหน้าแดชบอร์ด
+
+## การเปลี่ยนสถานะ
+
+เมื่อกดเปลี่ยนสถานะ ระบบจะอัปเดตสถานะกลับไปที่ Google Sheet ผ่าน Apps Script (`updateStatus`) ก่อน แล้วจึงอัปเดตหน้าแดชบอร์ด

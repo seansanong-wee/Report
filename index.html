@@ -770,13 +770,38 @@
         }
 
         // Toggle Status
-        function toggleStatus(index) {
+        async function toggleStatus(index) {
             let works = getStoredWorks();
             if (works[index]) {
-                works[index].status = works[index].status === 'รอตรวจสอบ' ? 'ตรวจสอบแล้ว' : 'รอตรวจสอบ';
+                const previousStatus = works[index].status || 'รอตรวจสอบ';
+                const nextStatus = previousStatus === 'รอตรวจสอบ' ? 'ตรวจสอบแล้ว' : 'รอตรวจสอบ';
+
+                try {
+                    await updateWorkStatusInGas(works[index], nextStatus);
+                } catch (error) {
+                    console.error('Update status GAS Error:', error);
+                    showModal('เปลี่ยนสถานะไม่สำเร็จ', error.message || 'ไม่สามารถอัปเดตสถานะใน Google Sheet ได้', false);
+                    return;
+                }
+
+                works[index].status = nextStatus;
                 saveStoredWorks(works);
                 renderWorks(works);
+                showModal('อัปเดตสถานะแล้ว', `เปลี่ยนสถานะเป็น "${nextStatus}" แล้ว`);
             }
+        }
+
+        async function updateWorkStatusInGas(work, nextStatus) {
+            const gasUrl = (localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL).trim();
+            if (!gasUrl) {
+                throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script Web App URL');
+            }
+
+            return sendGasAction(gasUrl, {
+                action: 'updateStatus',
+                id: work.id || '',
+                status: nextStatus
+            });
         }
 
         // Delete Work
@@ -807,16 +832,19 @@
                 throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script Web App URL');
             }
 
-            const url = new URL(gasUrl);
-            url.searchParams.set('action', 'delete');
-            url.searchParams.set('id', work.id || '');
-            url.searchParams.set('fileId', work.fileId || parseDriveFileId(work.fileUrl || ''));
-            url.searchParams.set('fileUrl', work.fileUrl || '');
-            url.searchParams.set('_', Date.now().toString());
+            return sendGasAction(gasUrl, {
+                action: 'delete',
+                id: work.id || '',
+                fileId: work.fileId || parseDriveFileId(work.fileUrl || ''),
+                fileUrl: work.fileUrl || ''
+            });
+        }
 
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                cache: 'no-store'
+        async function sendGasAction(gasUrl, payload) {
+            const response = await fetch(gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
@@ -828,11 +856,11 @@
             try {
                 result = JSON.parse(responseText);
             } catch (error) {
-                throw new Error('Google Apps Script ยังไม่รองรับการลบ กรุณา deploy Code.gs เวอร์ชันล่าสุดก่อน');
+                throw new Error('Google Apps Script ยังไม่รองรับคำสั่งนี้ กรุณา deploy Code.gs เวอร์ชันล่าสุดก่อน');
             }
 
             if (String(result.status || '').toLowerCase() === 'error') {
-                throw new Error(result.error || 'Google Apps Script ไม่สามารถลบข้อมูลได้');
+                throw new Error(result.error || 'Google Apps Script ไม่สามารถทำรายการได้');
             }
 
             return result;

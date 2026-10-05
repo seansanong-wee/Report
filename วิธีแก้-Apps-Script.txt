@@ -38,3 +38,17 @@ Folder ID ที่ตั้งไว้ใน Code.gs แล้ว:
 หลัง deploy สำเร็จ ไฟล์ที่ส่งจากหน้าเว็บจะถูกเก็บใน Google Drive โฟลเดอร์ "งานER"
 และข้อมูลรายการส่งงานจะถูกบันทึกใน Google Sheet ชื่อ:
 ER Selaphum Hospital Submissions
+
+วิธีตรวจว่า deploy เป็น Code.gs เวอร์ชันล่าสุด:
+
+1. เปิดลิงก์นี้
+   https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec?action=version
+
+2. ต้องเห็นข้อมูล JSON ที่มีคำว่า version และ actions
+
+3. actions ต้องมี list, delete, updateStatus
+
+ถ้ายังเห็นแค่ข้อความ:
+ER Selaphum Hospital Submission API is running successfully.
+
+แปลว่ายังไม่ได้เลือก New version ตอน Deploy หรือหน้าเว็บยังใช้ Web App URL คนละตัวกับที่ Deploy ล่าสุด

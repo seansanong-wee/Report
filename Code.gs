@@ -1,8 +1,15 @@
 const DRIVE_FOLDER_ID = '16qGODaATJmWlSpXJy1kIvhtxz1OOc6NB';
 const SPREADSHEET_NAME = 'ER Selaphum Hospital Submissions';
+const API_VERSION = '2026-10-05-05';
 
 function doGet(e) {
-  if (e && e.parameter && e.parameter.action === 'delete') {
+  const action = getAction_(e);
+
+  if (action === 'version' || action === 'ping') {
+    return jsonOutput_(apiInfo_());
+  }
+
+  if (action === 'delete') {
     try {
       return jsonOutput_(deleteSubmission_(e.parameter));
     } catch (error) {
@@ -13,7 +20,7 @@ function doGet(e) {
     }
   }
 
-  if (e && e.parameter && e.parameter.action === 'list') {
+  if (action === 'list') {
     try {
       const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
       const spreadsheet = getOrCreateSpreadsheet_(folder);
@@ -35,24 +42,37 @@ function doGet(e) {
     }
   }
 
-  if (e && e.parameter && e.parameter.action === 'ping') {
-    return jsonOutput_({
-      status: 'success',
-      message: 'ER Selaphum Hospital Submission API is running successfully.',
-      folderId: DRIVE_FOLDER_ID
-    });
-  }
-
-  return ContentService
-    .createTextOutput('ER Selaphum Hospital Submission API is running successfully.')
-    .setMimeType(ContentService.MimeType.TEXT);
+  return jsonOutput_(apiInfo_());
 }
 
 function doPost(e) {
   try {
     const data = parseRequest_(e);
+    if (data.action === 'version' || data.action === 'ping') {
+      return jsonOutput_(apiInfo_());
+    }
+
+    if (data.action === 'list') {
+      const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+      const spreadsheet = getOrCreateSpreadsheet_(folder);
+      const sheet = spreadsheet.getSheets()[0];
+      ensureHeader_(sheet);
+      const works = listSubmissions_(sheet);
+
+      return jsonOutput_({
+        status: 'success',
+        data: works,
+        works: works,
+        spreadsheetUrl: spreadsheet.getUrl()
+      });
+    }
+
     if (data.action === 'delete') {
       return jsonOutput_(deleteSubmission_(data));
+    }
+
+    if (data.action === 'updateStatus') {
+      return jsonOutput_(updateSubmissionStatus_(data));
     }
 
     const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
@@ -103,6 +123,21 @@ function doPost(e) {
       error: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์: ' + error.toString()
     });
   }
+}
+
+function getAction_(e) {
+  return e && e.parameter && e.parameter.action ? String(e.parameter.action) : '';
+}
+
+function apiInfo_() {
+  return {
+    status: 'success',
+    message: 'ER Selaphum Hospital Submission API is running successfully.',
+    version: API_VERSION,
+    folderId: DRIVE_FOLDER_ID,
+    spreadsheetName: SPREADSHEET_NAME,
+    actions: ['ping', 'version', 'list', 'delete', 'updateStatus']
+  };
 }
 
 function parseRequest_(e) {
@@ -216,10 +251,15 @@ function deleteSubmission_(data) {
     const fileUrl = String(data.fileUrl || row[7] || '');
     const fileId = String(data.fileId || row[10] || extractDriveFileId_(fileUrl) || '').trim();
     let fileTrashed = false;
+    let fileTrashError = '';
 
     if (fileId) {
-      DriveApp.getFileById(fileId).setTrashed(true);
-      fileTrashed = true;
+      try {
+        DriveApp.getFileById(fileId).setTrashed(true);
+        fileTrashed = true;
+      } catch (error) {
+        fileTrashError = error.toString();
+      }
     }
 
     sheet.deleteRow(rowNumber);
@@ -230,6 +270,48 @@ function deleteSubmission_(data) {
       deletedRow: rowNumber,
       fileId: fileId,
       fileTrashed: fileTrashed,
+      fileTrashError: fileTrashError,
+      spreadsheetUrl: spreadsheet.getUrl()
+    };
+  }
+
+  throw new Error('ไม่พบรายการนี้ใน Google Sheet');
+}
+
+function updateSubmissionStatus_(data) {
+  const id = String(data.id || '').trim();
+  const status = String(data.status || '').trim();
+
+  if (!id) {
+    throw new Error('ไม่พบรหัสงานที่ต้องการเปลี่ยนสถานะ');
+  }
+
+  if (!status) {
+    throw new Error('ไม่พบสถานะใหม่');
+  }
+
+  const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  const spreadsheet = getOrCreateSpreadsheet_(folder);
+  const sheet = spreadsheet.getSheets()[0];
+  ensureHeader_(sheet);
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    throw new Error('ไม่พบข้อมูลในชีต');
+  }
+
+  const values = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (String(values[i][0] || '').trim() !== id) continue;
+
+    const rowNumber = i + 2;
+    sheet.getRange(rowNumber, 9).setValue(status);
+
+    return {
+      status: 'success',
+      updatedId: id,
+      updatedRow: rowNumber,
+      newStatus: status,
       spreadsheetUrl: spreadsheet.getUrl()
     };
   }
