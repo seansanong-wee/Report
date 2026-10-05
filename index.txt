@@ -282,9 +282,31 @@
     <script>
         let deptChartInstance = null;
         let statusChartInstance = null;
-        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec';
+        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyPe_ep4Wmkj-V1ajfFmhZK4jUhD_LY1qMEPhhKHHDM44jX7T5fgTJge6WZXp0vbV5C7Q/exec';
+        const LEGACY_GAS_URLS = [
+            'https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec'
+        ];
         const DRIVE_FOLDER_ID = '16qGODaATJmWlSpXJy1kIvhtxz1OOc6NB';
         const DRIVE_FOLDER_URL = `https://drive.google.com/drive/folders/${DRIVE_FOLDER_ID}`;
+
+        function normalizeGasUrl(url) {
+            const trimmedUrl = (url || '').trim();
+            if (!trimmedUrl) return DEFAULT_GAS_URL;
+
+            const comparableUrl = trimmedUrl.replace(/\/+$/, '');
+            return LEGACY_GAS_URLS.includes(comparableUrl) ? DEFAULT_GAS_URL : trimmedUrl;
+        }
+
+        function getConfiguredGasUrl() {
+            const savedUrl = localStorage.getItem('er_selaphum_gas_url') || '';
+            const gasUrl = normalizeGasUrl(savedUrl);
+
+            if (gasUrl !== savedUrl) {
+                localStorage.setItem('er_selaphum_gas_url', gasUrl);
+            }
+
+            return gasUrl;
+        }
 
         // Tab switching logic
         function switchTab(tabName) {
@@ -347,7 +369,7 @@
 
         // Save GAS URL to LocalStorage
         async function saveGasUrl() {
-            const url = document.getElementById('gasUrl').value.trim() || DEFAULT_GAS_URL;
+            const url = normalizeGasUrl(document.getElementById('gasUrl').value);
             document.getElementById('gasUrl').value = url;
             localStorage.setItem('er_selaphum_gas_url', url);
 
@@ -362,7 +384,7 @@
 
         // Load saved GAS URL on start
         window.addEventListener('DOMContentLoaded', () => {
-            const savedUrl = localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL;
+            const savedUrl = getConfiguredGasUrl();
             document.getElementById('gasUrl').value = savedUrl;
             localStorage.setItem('er_selaphum_gas_url', savedUrl);
             loadWorks();
@@ -422,7 +444,7 @@
                 driveFolderUrl: DRIVE_FOLDER_URL
             };
 
-            const gasUrl = (localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL).trim();
+            const gasUrl = getConfiguredGasUrl();
             let submissionForStorage;
 
             try {
@@ -541,7 +563,7 @@
         }
 
         async function fetchWorksFromGas() {
-            const gasUrl = (localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL).trim();
+            const gasUrl = getConfiguredGasUrl();
             if (!gasUrl) return [];
 
             const url = new URL(gasUrl);
@@ -792,7 +814,7 @@
         }
 
         async function updateWorkStatusInGas(work, nextStatus) {
-            const gasUrl = (localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL).trim();
+            const gasUrl = getConfiguredGasUrl();
             if (!gasUrl) {
                 throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script Web App URL');
             }
@@ -827,7 +849,7 @@
         }
 
         async function deleteWorkInGas(work) {
-            const gasUrl = (localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL).trim();
+            const gasUrl = getConfiguredGasUrl();
             if (!gasUrl) {
                 throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script Web App URL');
             }

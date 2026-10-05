@@ -46,7 +46,7 @@ Folder ID ที่ใช้จัดเก็บไฟล์:
 ตรวจว่า deploy เป็นเวอร์ชันล่าสุดแล้วโดยเปิด:
 
 ```text
-https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec?action=version
+https://script.google.com/macros/s/AKfycbyPe_ep4Wmkj-V1ajfFmhZK4jUhD_LY1qMEPhhKHHDM44jX7T5fgTJge6WZXp0vbV5C7Q/exec?action=version
 ```
 
 ผลลัพธ์ต้องเป็น JSON และมี `version`, `actions` ที่รวม `list`, `delete`, และ `updateStatus`

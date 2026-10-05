@@ -8,7 +8,7 @@ Google Apps Script ที่ deploy อยู่ยังใช้ placeholder "
 ขั้นตอนทำให้ใช้งานได้จริง:
 
 1. เปิดโปรเจกต์ Google Apps Script เดิมที่ใช้สร้าง Web App URL นี้
-   https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec
+   https://script.google.com/macros/s/AKfycbyPe_ep4Wmkj-V1ajfFmhZK4jUhD_LY1qMEPhhKHHDM44jX7T5fgTJge6WZXp0vbV5C7Q/exec
 
 2. เปิดไฟล์ Code.gs ใน Apps Script Editor
 
@@ -42,7 +42,7 @@ ER Selaphum Hospital Submissions
 วิธีตรวจว่า deploy เป็น Code.gs เวอร์ชันล่าสุด:
 
 1. เปิดลิงก์นี้
-   https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec?action=version
+   https://script.google.com/macros/s/AKfycbyPe_ep4Wmkj-V1ajfFmhZK4jUhD_LY1qMEPhhKHHDM44jX7T5fgTJge6WZXp0vbV5C7Q/exec?action=version
 
 2. ต้องเห็นข้อมูล JSON ที่มีคำว่า version และ actions
 
