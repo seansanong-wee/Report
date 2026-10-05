@@ -1,0 +1,40 @@
+วิธีแก้ error:
+เกิดข้อผิดพลาดในการอัปโหลดไฟล์: Exception: รหัสไฟล์หรือโฟลเดอร์ไม่ถูกต้อง: ใส่_Folder_ID_ของท่านที่นี่
+
+สาเหตุ:
+Google Apps Script ที่ deploy อยู่ยังใช้ placeholder "ใส่_Folder_ID_ของท่านที่นี่"
+ต้องแก้โค้ดฝั่ง Apps Script ไม่ใช่แก้หน้าเว็บอย่างเดียว
+
+ขั้นตอนทำให้ใช้งานได้จริง:
+
+1. เปิดโปรเจกต์ Google Apps Script เดิมที่ใช้สร้าง Web App URL นี้
+   https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec
+
+2. เปิดไฟล์ Code.gs ใน Apps Script Editor
+
+3. ลบโค้ดเดิมทั้งหมด แล้วนำโค้ดจากไฟล์นี้ไปวางแทน:
+   C:\Users\user\Desktop\ระบบ\Code.gs
+
+4. กด Save
+
+5. ไปที่ Deploy > Manage deployments
+
+6. กดไอคอนดินสอเพื่อแก้ deployment เดิม
+
+7. เลือก Version เป็น New version
+
+8. ตรวจให้ถูกต้อง:
+   - Execute as: Me
+   - Who has access: Anyone
+
+9. กด Deploy
+
+10. ถ้า Google แสดง Web App URL ใหม่ ให้นำ URL ใหม่นั้นไปใส่ในช่อง
+    "ตั้งค่า Google Apps Script (GAS)" บนหน้าเว็บ แล้วกด "บันทึก URL เชื่อมต่อ"
+
+Folder ID ที่ตั้งไว้ใน Code.gs แล้ว:
+16qGODaATJmWlSpXJy1kIvhtxz1OOc6NB
+
+หลัง deploy สำเร็จ ไฟล์ที่ส่งจากหน้าเว็บจะถูกเก็บใน Google Drive โฟลเดอร์ "งานER"
+และข้อมูลรายการส่งงานจะถูกบันทึกใน Google Sheet ชื่อ:
+ER Selaphum Hospital Submissions

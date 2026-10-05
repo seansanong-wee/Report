@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ส่งงาน งานER selaphum hospital</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Advanced Dashboard Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full bg-slate-50 text-slate-800 font-sans antialiased flex flex-col">
+
+    <header class="bg-gradient-to-r from-teal-600 via-teal-700 to-cyan-800 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2.5 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
+                    <i class="fa-solid fa-hospital text-2xl text-cyan-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-tight">ER Selaphum Hospital</h1>
+                    <p class="text-xs text-cyan-100 opacity-90">ระบบส่งงานและติดตามความคืบหน้าออนไลน์</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1 sm:space-x-2 bg-black/10 p-1.5 rounded-xl backdrop-blur-sm border border-white/10">
+                <button onclick="switchTab('submit')" id="nav-submit" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg bg-white/20 shadow-sm transition hover:bg-white/30 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> <span class="hidden sm:inline">ส่งงาน</span>
+                </button>
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition hover:bg-white/20 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie"></i> <span class="hidden sm:inline">แดชบอร์ดสถิติ</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Notification Modal / Custom Alert Box -->
+        <div id="custom-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-all">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full mx-4 shadow-2xl border border-slate-100 transform transition-all scale-95" id="modal-content">
+                <div class="text-center">
+                    <div id="modal-icon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner"></div>
+                    <h3 id="modal-title" class="text-lg font-bold text-slate-900 mb-2">แจ้งเตือน</h3>
+                    <p id="modal-message" class="text-sm text-slate-600 mb-6 leading-relaxed"></p>
+                    <button onclick="closeModal()" class="w-full py-3 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold rounded-2xl transition shadow-lg shadow-teal-600/25">ตกลง</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-submit" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Form Submission Card -->
+                <div class="lg:col-span-2 bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 p-6 sm:p-8">
+                    <div class="border-b border-slate-100 pb-5 mb-6 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                                <span class="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-sm"><i class="fa-solid fa-file-circle-plus"></i></span>
+                                ระบบส่งงาน งานอุบัติเหตุฉุกเฉินและนิติเวช
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-1">กรอกรายละเอียดงานและแนบไฟล์หลักฐานเพื่อส่งเข้าสู่ระบบจัดเก็บ</p>
+                        </div>
+                    </div>
+
+                    <form id="submission-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">ชื่อ-นามสกุล ผู้ส่ง</label>
+                                <input type="text" id="senderName" required placeholder="เช่น พว.สมชาย ใจดี" class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">ตำแหน่ง</label>
+                                <select id="department" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm transition">
+                                    <option value="">-- เลือกตำแหน่ง --</option>
+                                    <option value="พยาบาล">พยาบาล</option>
+                                    <option value="เจ้าพนักงานเวชกิจฉุกเฉิน">เจ้าพนักงานเวชกิจฉุกเฉิน</option>
+                                    <option value="ผู้ช่วยเหลือคนไข้">ผู้ช่วยเหลือคนไข้</option>
+                                    <option value="บันทึกข้อมูล">บันทึกข้อมูล</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">หัวข้องาน / รายงานที่ส่ง</label>
+                            <input type="text" id="workTitle" required placeholder="เช่น รายงานอุบัติเหตุประจำเดือน, สรุปเวรบ่าย" class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">รายละเอียดเพิ่มเติม / หมายเหตุ</label>
+                            <textarea id="workDetail" rows="3" placeholder="ระบุคำอธิบายเพิ่มเติมเกี่ยวกับงานที่ส่ง..." class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm transition"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">แนบไฟล์งาน (PDF, รูปภาพ, Word, Excel)</label>
+                            <div class="border-2 border-dashed border-slate-200 hover:border-teal-500 rounded-3xl p-6 text-center transition cursor-pointer bg-slate-50/50 hover:bg-teal-50/20 relative group" onclick="document.getElementById('workFile').click()">
+                                <input type="file" id="workFile" required onchange="updateFileName(this)" class="hidden">
+                                <div id="file-drop-area" class="space-y-3">
+                                    <div class="w-12 h-12 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mx-auto group-hover:scale-110 transition shadow-sm">
+                                        <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                                    </div>
+                                    <p class="text-sm font-medium text-slate-700" id="file-label-text">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</p>
+                                    <p class="text-xs text-slate-400">รองรับไฟล์ทุกประเภท ขนาดไม่เกิน 25MB</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3">
+                            <button type="submit" id="submit-btn" class="w-full py-3.5 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold rounded-2xl shadow-xl shadow-teal-600/25 transition flex items-center justify-center gap-2 text-sm">
+                                <i class="fa-solid fa-paper-plane"></i> ยืนยันการส่งงานเข้าสู่ระบบ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Instructions & Info Card -->
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-br from-teal-900 via-teal-800 to-cyan-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+                        <div class="absolute -right-8 -bottom-8 opacity-10 text-9xl">
+                            <i class="fa-solid fa-hospital-user"></i>
+                        </div>
+                        <h3 class="font-bold text-base mb-4 flex items-center gap-2.5">
+                            <i class="fa-solid fa-circle-info text-cyan-300"></i> คำแนะนำการใช้งาน
+                        </h3>
+                        <ul class="space-y-3 text-xs text-teal-100 leading-relaxed">
+                            <li class="flex items-start gap-2.5">
+                                <i class="fa-solid fa-check text-cyan-400 mt-0.5"></i>
+                                <span>ตรวจสอบชื่อเรื่องและเลือกตำแหน่งให้ถูกต้องก่อนกดส่ง</span>
+                            </li>
+                            <li class="flex items-start gap-2.5">
+                                <i class="fa-solid fa-check text-cyan-400 mt-0.5"></i>
+                                <span>ไฟล์แนบจะถูกส่งตรงเข้า Google Drive และ Google Sheets อัตโนมัติ</span>
+                            </li>
+                            <li class="flex items-start gap-2.5">
+                                <i class="fa-solid fa-check text-cyan-400 mt-0.5"></i>
+                                <span>สามารถตรวจสอบภาพรวม กราฟสถิติ และสถานะได้ที่แท็บ "แดชบอร์ดสถิติ"</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 border border-slate-200/80">
+                        <h3 class="font-bold text-sm text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-gear text-teal-600"></i> ตั้งค่า Google Apps Script (GAS)
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1.5 font-medium">Web App URL</label>
+                                <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                            </div>
+                            <button onclick="saveGasUrl()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl transition shadow-md">บันทึก URL เชื่อมต่อ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-dashboard" class="space-y-6 hidden">
+            <!-- Stat Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-6 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">งานทั้งหมดในระบบ</p>
+                        <h3 id="stat-total" class="text-3xl font-extrabold text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="w-14 h-14 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-2xl shadow-sm">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ตรวจสอบแล้ว</p>
+                        <h3 id="stat-approved" class="text-3xl font-extrabold text-emerald-600 mt-1">0</h3>
+                    </div>
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-sm">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">รอการตรวจสอบ</p>
+                        <h3 id="stat-pending" class="text-3xl font-extrabold text-amber-500 mt-1">0</h3>
+                    </div>
+                    <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-2xl shadow-sm">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ตำแหน่งที่ส่งงาน</p>
+                        <h3 id="stat-dept-count" class="text-3xl font-extrabold text-cyan-600 mt-1">4</h3>
+                    </div>
+                    <div class="w-14 h-14 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-2xl shadow-sm">
+                        <i class="fa-solid fa-user-nurse"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Bar Chart: Department/Position Breakdown -->
+                <div class="bg-white p-6 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 lg:col-span-2 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-teal-600"></i> สถิติการส่งงานแยกตามตำแหน่ง
+                        </h3>
+                    </div>
+                    <div class="relative flex-grow h-64">
+                        <canvas id="deptChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Doughnut Chart: Status Proportion -->
+                <div class="bg-white p-6 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-cyan-600"></i> สัดส่วนสถานะงาน
+                        </h3>
+                    </div>
+                    <div class="relative flex-grow h-64 flex items-center justify-center">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Work List -->
+            <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">รายการงานที่ส่งเข้าสู่ระบบทั้งหมด</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">ติดตามสถานะ จัดการ และดาวน์โหลดไฟล์แนบย้อนหลัง</p>
+                    </div>
+                    <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                        <input type="text" id="search-input" onkeyup="filterTable()" placeholder="ค้นหาชื่องาน หรือผู้ส่ง..." class="px-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-64">
+                        <button onclick="loadWorks()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-xl transition shadow-sm" title="รีเฟรชข้อมูล">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-slate-500 uppercase tracking-wider border-b border-slate-200 font-semibold">
+                                <th class="py-3.5 px-4">วันที่/เวลา</th>
+                                <th class="py-3.5 px-4">ผู้ส่ง / ตำแหน่ง</th>
+                                <th class="py-3.5 px-4">หัวข้องาน</th>
+                                <th class="py-3.5 px-4">สถานะ</th>
+                                <th class="py-3.5 px-4">ไฟล์แนบ</th>
+                                <th class="py-3.5 px-4 text-center">จัดการสถานะ / ลบ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="work-table-body" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Rows loaded via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="empty-state" class="hidden text-center py-16">
+                    <div class="w-16 h-16 rounded-3xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <p class="text-sm font-medium text-slate-500">ยังไม่มีข้อมูลการส่งงานในระบบ</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let deptChartInstance = null;
+        let statusChartInstance = null;
+        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbz1htjQwVQXutHCOMVIMtIJSw9mSZsrKHMNUVUGKc8TukOryeQ9NNzlQ-bddScHR2nM/exec';
+        const DRIVE_FOLDER_ID = '16qGODaATJmWlSpXJy1kIvhtxz1OOc6NB';
+        const DRIVE_FOLDER_URL = `https://drive.google.com/drive/folders/${DRIVE_FOLDER_ID}`;
+
+        // Tab switching logic
+        function switchTab(tabName) {
+            const submitTab = document.getElementById('tab-submit');
+            const dashboardTab = document.getElementById('tab-dashboard');
+            const navSubmit = document.getElementById('nav-submit');
+            const navDashboard = document.getElementById('nav-dashboard');
+
+            if (tabName === 'submit') {
+                submitTab.classList.remove('hidden');
+                dashboardTab.classList.add('hidden');
+                navSubmit.classList.add('bg-white/20', 'shadow-sm');
+                navDashboard.classList.remove('bg-white/20', 'shadow-sm');
+            } else {
+                submitTab.classList.add('hidden');
+                dashboardTab.classList.remove('hidden');
+                navDashboard.classList.add('bg-white/20', 'shadow-sm');
+                navSubmit.classList.remove('bg-white/20', 'shadow-sm');
+                loadWorks();
+            }
+        }
+
+        // File label update helper
+        function updateFileName(input) {
+            const labelText = document.getElementById('file-label-text');
+            if (input.files && input.files[0]) {
+                labelText.innerHTML = `<span class="text-teal-600 font-semibold"><i class="fa-solid fa-file-arrow-up"></i> ${input.files[0].name}</span>`;
+            } else {
+                labelText.textContent = 'คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่';
+            }
+        }
+
+        // Custom Modal helper
+        function showModal(title, message, isSuccess = true) {
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const modalIcon = document.getElementById('modal-icon');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+
+            if (isSuccess) {
+                modalIcon.className = "w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner";
+                modalIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+            } else {
+                modalIcon.className = "w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner";
+                modalIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        // Save GAS URL to LocalStorage
+        function saveGasUrl() {
+            const url = document.getElementById('gasUrl').value.trim() || DEFAULT_GAS_URL;
+            document.getElementById('gasUrl').value = url;
+            localStorage.setItem('er_selaphum_gas_url', url);
+            showModal('บันทึกสำเร็จ', 'บันทึก Google Apps Script Web App URL เรียบร้อยแล้ว');
+        }
+
+        // Load saved GAS URL on start
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUrl = localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL;
+            document.getElementById('gasUrl').value = savedUrl;
+            localStorage.setItem('er_selaphum_gas_url', savedUrl);
+            loadWorks();
+        });
+
+        // Handle Form Submission
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('submit-btn');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังอัปโหลดไฟล์และส่งข้อมูล...';
+
+            const senderName = document.getElementById('senderName').value;
+            const department = document.getElementById('department').value;
+            const workTitle = document.getElementById('workTitle').value;
+            const workDetail = document.getElementById('workDetail').value;
+            const fileInput = document.getElementById('workFile');
+
+            const now = new Date();
+            const timestamp = now.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+
+            let fileDataName = '';
+            let fileDataBase64 = '';
+            let fileMimeType = '';
+
+            if (fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+                fileDataName = file.name;
+                fileMimeType = file.type;
+                
+                try {
+                    fileDataBase64 = await readFileAsBase64(file);
+                } catch (err) {
+                    showModal('เกิดข้อผิดพลาด', 'ไม่สามารถอ่านไฟล์ได้ กรุณาลองใหม่อีกครั้ง', false);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    return;
+                }
+            }
+
+            const newSubmission = {
+                id: 'JOB-' + Math.floor(1000 + Math.random() * 9000),
+                timestamp: timestamp,
+                senderName: senderName,
+                department: department,
+                workTitle: workTitle,
+                workDetail: workDetail,
+                fileName: fileDataName,
+                fileData: fileDataBase64,
+                mimeType: fileMimeType,
+                fileUrl: '#',
+                status: 'รอตรวจสอบ',
+                folderId: DRIVE_FOLDER_ID,
+                driveFolderId: DRIVE_FOLDER_ID,
+                driveFolderUrl: DRIVE_FOLDER_URL
+            };
+
+            const gasUrl = (localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL).trim();
+            let submissionForStorage;
+
+            try {
+                const gasResult = await submitToGas(gasUrl, newSubmission);
+                const uploadedFileUrl = extractFileUrl(gasResult);
+                submissionForStorage = {
+                    ...newSubmission,
+                    fileUrl: uploadedFileUrl || newSubmission.fileUrl,
+                    fileData: uploadedFileUrl ? '' : newSubmission.fileData
+                };
+            } catch (error) {
+                console.error('GAS Error:', error);
+                showModal('ส่งงานไม่สำเร็จ', error.message || 'ไม่สามารถส่งข้อมูลไปยัง Google Apps Script ได้', false);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                return;
+            }
+
+            // Save to local storage for instant dashboard viewing
+            let localWorks = JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
+            localWorks.unshift(submissionForStorage);
+            localStorage.setItem('er_selaphum_works', JSON.stringify(localWorks));
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+
+            // Reset Form
+            document.getElementById('submission-form').reset();
+            document.getElementById('file-label-text').textContent = 'คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่';
+
+            showModal('ส่งงานสำเร็จ!', 'ข้อมูลและไฟล์ของคุณถูกบันทึกเข้าสู่ระบบเรียบร้อยแล้ว');
+            switchTab('dashboard');
+        }
+
+        async function submitToGas(gasUrl, submission) {
+            if (!gasUrl) {
+                throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script Web App URL');
+            }
+
+            const response = await fetch(gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(submission)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Google Apps Script ตอบกลับสถานะ ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            let result = {};
+            if (responseText) {
+                try {
+                    result = JSON.parse(responseText);
+                } catch (error) {
+                    throw new Error(`Google Apps Script ส่งข้อมูลกลับมาไม่ถูกต้อง: ${responseText.slice(0, 120)}`);
+                }
+            }
+
+            const status = String(result.status || '').toLowerCase();
+            const rawFileUrl = result.fileUrl || result.fileURL || result.driveFileUrl || result.driveUrl || result.url || '';
+            const message = result.message || result.error || rawFileUrl;
+            if (status === 'error' || isGasErrorMessage(message)) {
+                throw new Error(message || 'Google Apps Script ไม่สามารถบันทึกข้อมูลได้');
+            }
+
+            return result;
+        }
+
+        function extractFileUrl(result) {
+            if (!result) return '';
+            const fileUrl = result.fileUrl || result.fileURL || result.driveFileUrl || result.driveUrl || result.url || '';
+            return isGasErrorMessage(fileUrl) || fileUrl === '-' ? '' : fileUrl;
+        }
+
+        function isGasErrorMessage(value) {
+            const text = String(value || '');
+            return /เกิดข้อผิดพลาด|ไม่ถูกต้อง|error|exception|invalid/i.test(text);
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result;
+                    const base64String = result.split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Load and Render Dashboard Works & Charts
+        function loadWorks() {
+            const tbody = document.getElementById('work-table-body');
+            const emptyState = document.getElementById('empty-state');
+            const works = JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
+
+            // Update stats
+            document.getElementById('stat-total').textContent = works.length;
+            const approvedCount = works.filter(w => w.status === 'ตรวจสอบแล้ว').length;
+            const pendingCount = works.filter(w => w.status === 'รอตรวจสอบ').length;
+            document.getElementById('stat-approved').textContent = approvedCount;
+            document.getElementById('stat-pending').textContent = pendingCount;
+
+            const uniqueDepts = [...new Set(works.map(w => w.department))].filter(Boolean);
+            document.getElementById('stat-dept-count').textContent = uniqueDepts.length;
+
+            renderCharts(works);
+
+            if (works.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = '';
+
+            works.forEach((work, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition';
+                
+                let statusBadge = '';
+                if (work.status === 'ตรวจสอบแล้ว') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">ตรวจสอบแล้ว</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-200">รอตรวจสอบ</span>`;
+                }
+
+                let fileAction = '-';
+                if (work.fileName) {
+                    if (work.fileData) {
+                        fileAction = `<button onclick="downloadLocalFile(${index})" class="text-teal-600 hover:text-teal-800 font-medium underline flex items-center gap-1"><i class="fa-solid fa-download"></i> ดาวน์โหลด</button>`;
+                    } else if (work.fileUrl && work.fileUrl !== '#') {
+                        fileAction = `<a href="${work.fileUrl}" target="_blank" class="text-teal-600 hover:text-teal-800 font-medium underline flex items-center gap-1"><i class="fa-solid fa-arrow-up-right-from-square"></i> เปิดไฟล์</a>`;
+                    } else {
+                        fileAction = `<span class="text-slate-400">${work.fileName}</span>`;
+                    }
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 text-slate-500 whitespace-nowrap">${work.timestamp || '-'}</td>
+                    <td class="py-3.5 px-4">
+                        <div class="font-medium text-slate-900">${work.senderName}</div>
+                        <div class="text-[11px] text-slate-400">${work.department}</div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="font-medium text-slate-900">${work.workTitle}</div>
+                        <div class="text-[11px] text-slate-400 truncate max-w-xs">${work.workDetail || ''}</div>
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap">${statusBadge}</td>
+                    <td class="py-3.5 px-4 whitespace-nowrap">${fileAction}</td>
+                    <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                        <button onclick="toggleStatus(${index})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] transition font-medium" title="เปลี่ยนสถานะ">เปลี่ยนสถานะ</button>
+                        <button onclick="deleteWork(${index})" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[11px] transition ml-1" title="ลบข้อมูล"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Render Chart.js Analytics
+        function renderCharts(works) {
+            const positions = ["พยาบาล", "เจ้าพนักงานเวชกิจฉุกเฉิน", "ผู้ช่วยเหลือคนไข้", "บันทึกข้อมูล"];
+            const posCounts = positions.map(p => works.filter(w => w.department === p).length);
+
+            // Bar Chart
+            const deptCtx = document.getElementById('deptChart').getContext('2d');
+            if (deptChartInstance) deptChartInstance.destroy();
+            deptChartInstance = new Chart(deptCtx, {
+                type: 'bar',
+                data: {
+                    labels: positions,
+                    datasets: [{
+                        label: 'จำนวนงานที่ส่ง',
+                        data: posCounts,
+                        backgroundColor: '#0d9488',
+                        borderRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+
+            // Doughnut Chart
+            const approved = works.filter(w => w.status === 'ตรวจสอบแล้ว').length;
+            const pending = works.filter(w => w.status === 'รอตรวจสอบ').length;
+
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            if (statusChartInstance) statusChartInstance.destroy();
+            statusChartInstance = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ตรวจสอบแล้ว', 'รอตรวจสอบ'],
+                    datasets: [{
+                        data: [approved, pending],
+                        backgroundColor: ['#10b981', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Prompt' } } }
+                    }
+                }
+            });
+        }
+
+        // Download local base64 file
+        function downloadLocalFile(index) {
+            const works = JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
+            const work = works[index];
+            if (!work || !work.fileData) return;
+
+            const link = document.createElement('a');
+            link.href = `data:${work.mimeType};base64,${work.fileData}`;
+            link.download = work.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Toggle Status
+        function toggleStatus(index) {
+            let works = JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
+            if (works[index]) {
+                works[index].status = works[index].status === 'รอตรวจสอบ' ? 'ตรวจสอบแล้ว' : 'รอตรวจสอบ';
+                localStorage.setItem('er_selaphum_works', JSON.stringify(works));
+                loadWorks();
+            }
+        }
+
+        // Delete Work
+        function deleteWork(index) {
+            if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+                let works = JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
+                works.splice(index, 1);
+                localStorage.setItem('er_selaphum_works', JSON.stringify(works));
+                loadWorks();
+            }
+        }
+
+        // Search Filter Table
+        function filterTable() {
+            const input = document.getElementById('search-input').value.toLowerCase();
+            const rows = document.getElementById('work-table-body').getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const text = rows[i].textContent.toLowerCase();
+                if (text.includes(input)) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
