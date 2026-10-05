@@ -249,6 +249,7 @@
                         </button>
                     </div>
                 </div>
+                <div id="sync-status" class="hidden mx-6 mt-4 rounded-2xl border px-4 py-3 text-xs leading-relaxed"></div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
@@ -345,11 +346,18 @@
         }
 
         // Save GAS URL to LocalStorage
-        function saveGasUrl() {
+        async function saveGasUrl() {
             const url = document.getElementById('gasUrl').value.trim() || DEFAULT_GAS_URL;
             document.getElementById('gasUrl').value = url;
             localStorage.setItem('er_selaphum_gas_url', url);
-            showModal('บันทึกสำเร็จ', 'บันทึก Google Apps Script Web App URL เรียบร้อยแล้ว');
+
+            try {
+                await fetchWorksFromGas();
+                showModal('บันทึกสำเร็จ', 'บันทึก Google Apps Script Web App URL และเชื่อมต่อข้อมูลเดิมได้แล้ว');
+                loadWorks();
+            } catch (error) {
+                showModal('บันทึก URL แล้ว', error.message || 'บันทึก URL แล้ว แต่ยังโหลดข้อมูลเดิมไม่ได้', false);
+            }
         }
 
         // Load saved GAS URL on start
@@ -549,7 +557,14 @@
                 throw new Error(`Google Apps Script ตอบกลับสถานะ ${response.status}`);
             }
 
-            const result = await response.json();
+            const responseText = await response.text();
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (error) {
+                throw new Error('Apps Script ที่ใช้อยู่ยังไม่ใช่เวอร์ชันล่าสุด กรุณานำ Code.gs ล่าสุดไป Deploy ใหม่ เพื่อให้รองรับการโหลดข้อมูลเดิมจาก Google Sheet');
+            }
+
             if (String(result.status || '').toLowerCase() === 'error') {
                 throw new Error(result.error || 'ไม่สามารถโหลดข้อมูลเดิมจาก Google Apps Script ได้');
             }
@@ -584,6 +599,7 @@
         async function loadWorks() {
             const localWorks = getStoredWorks();
             renderWorks(localWorks);
+            setSyncStatus('กำลังตรวจสอบข้อมูลล่าสุดจาก Google Sheet...', 'loading');
 
             try {
                 const remoteWorks = await fetchWorksFromGas();
@@ -591,10 +607,29 @@
                     const mergedWorks = mergeWorks(remoteWorks, localWorks);
                     saveStoredWorks(mergedWorks);
                     renderWorks(mergedWorks);
+                    setSyncStatus(`โหลดข้อมูลล่าสุดจาก Google Sheet แล้ว ${remoteWorks.length} รายการ`, 'success');
+                } else {
+                    setSyncStatus('เชื่อมต่อ Google Sheet ได้แล้ว แต่ยังไม่มีข้อมูลที่บันทึกไว้ในชีต', 'success');
                 }
             } catch (error) {
                 console.warn('Load remote works failed:', error);
+                setSyncStatus(error.message || 'โหลดข้อมูลเดิมจาก Google Sheet ไม่สำเร็จ', 'error');
             }
+        }
+
+        function setSyncStatus(message, type = 'info') {
+            const syncStatus = document.getElementById('sync-status');
+            if (!syncStatus) return;
+
+            const styles = {
+                loading: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+                success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                error: 'border-rose-200 bg-rose-50 text-rose-700',
+                info: 'border-slate-200 bg-slate-50 text-slate-600'
+            };
+
+            syncStatus.className = `mx-6 mt-4 rounded-2xl border px-4 py-3 text-xs leading-relaxed ${styles[type] || styles.info}`;
+            syncStatus.textContent = message;
         }
 
         function renderWorks(works) {
