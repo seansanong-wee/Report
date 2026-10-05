@@ -420,8 +420,10 @@
             try {
                 const gasResult = await submitToGas(gasUrl, newSubmission);
                 const uploadedFileUrl = extractFileUrl(gasResult);
+                const uploadedFileId = extractFileId(gasResult);
                 submissionForStorage = {
                     ...newSubmission,
+                    fileId: uploadedFileId,
                     fileUrl: uploadedFileUrl || newSubmission.fileUrl,
                     fileData: uploadedFileUrl ? '' : newSubmission.fileData
                 };
@@ -490,6 +492,20 @@
             return isGasErrorMessage(fileUrl) || fileUrl === '-' ? '' : fileUrl;
         }
 
+        function extractFileId(result) {
+            if (!result) return '';
+            return result.fileId || result.driveFileId || parseDriveFileId(result.fileUrl || result.fileURL || result.driveFileUrl || result.driveUrl || result.url || '');
+        }
+
+        function parseDriveFileId(url) {
+            const text = String(url || '');
+            const filePathMatch = text.match(/\/d\/([a-zA-Z0-9_-]{20,})/);
+            if (filePathMatch) return filePathMatch[1];
+
+            const idParamMatch = text.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
+            return idParamMatch ? idParamMatch[1] : '';
+        }
+
         function isGasErrorMessage(value) {
             const text = String(value || '');
             return /เกิดข้อผิดพลาด|ไม่ถูกต้อง|error|exception|invalid/i.test(text);
@@ -554,6 +570,7 @@
                 merged.set(key, {
                     ...work,
                     fileUrl: work.fileUrl || '#',
+                    fileId: work.fileId || parseDriveFileId(work.fileUrl || ''),
                     fileData: work.fileData || '',
                     mimeType: work.mimeType || '',
                     status: work.status || 'รอตรวจสอบ'
@@ -728,13 +745,62 @@
         }
 
         // Delete Work
-        function deleteWork(index) {
+        async function deleteWork(index) {
             if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
                 let works = getStoredWorks();
+                const work = works[index];
+                if (!work) return;
+
+                try {
+                    await deleteWorkInGas(work);
+                } catch (error) {
+                    console.error('Delete GAS Error:', error);
+                    showModal('ลบไม่สำเร็จ', error.message || 'ไม่สามารถลบข้อมูลใน Google Sheet และ Google Drive ได้', false);
+                    return;
+                }
+
                 works.splice(index, 1);
                 saveStoredWorks(works);
                 renderWorks(works);
+                showModal('ลบข้อมูลแล้ว', 'ลบรายการในแดชบอร์ด Google Sheet และไฟล์ใน Drive แล้ว');
             }
+        }
+
+        async function deleteWorkInGas(work) {
+            const gasUrl = (localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL).trim();
+            if (!gasUrl) {
+                throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script Web App URL');
+            }
+
+            const url = new URL(gasUrl);
+            url.searchParams.set('action', 'delete');
+            url.searchParams.set('id', work.id || '');
+            url.searchParams.set('fileId', work.fileId || parseDriveFileId(work.fileUrl || ''));
+            url.searchParams.set('fileUrl', work.fileUrl || '');
+            url.searchParams.set('_', Date.now().toString());
+
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Google Apps Script ตอบกลับสถานะ ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (error) {
+                throw new Error('Google Apps Script ยังไม่รองรับการลบ กรุณา deploy Code.gs เวอร์ชันล่าสุดก่อน');
+            }
+
+            if (String(result.status || '').toLowerCase() === 'error') {
+                throw new Error(result.error || 'Google Apps Script ไม่สามารถลบข้อมูลได้');
+            }
+
+            return result;
         }
 
         // Search Filter Table

@@ -2,6 +2,17 @@ const DRIVE_FOLDER_ID = '16qGODaATJmWlSpXJy1kIvhtxz1OOc6NB';
 const SPREADSHEET_NAME = 'ER Selaphum Hospital Submissions';
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.action === 'delete') {
+    try {
+      return jsonOutput_(deleteSubmission_(e.parameter));
+    } catch (error) {
+      return jsonOutput_({
+        status: 'error',
+        error: 'ไม่สามารถลบข้อมูลได้: ' + error.toString()
+      });
+    }
+  }
+
   if (e && e.parameter && e.parameter.action === 'list') {
     try {
       const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
@@ -40,6 +51,10 @@ function doGet(e) {
 function doPost(e) {
   try {
     const data = parseRequest_(e);
+    if (data.action === 'delete') {
+      return jsonOutput_(deleteSubmission_(data));
+    }
+
     const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
     const now = new Date();
 
@@ -72,7 +87,8 @@ function doPost(e) {
       data.fileName || '',
       fileUrl,
       data.status || 'รอตรวจสอบ',
-      Utilities.formatDate(now, 'Asia/Bangkok', 'yyyy-MM-dd HH:mm:ss')
+      Utilities.formatDate(now, 'Asia/Bangkok', 'yyyy-MM-dd HH:mm:ss'),
+      fileId
     ]);
 
     return jsonOutput_({
@@ -125,9 +141,7 @@ function getOrCreateSpreadsheet_(folder) {
 }
 
 function ensureHeader_(sheet) {
-  if (sheet.getLastRow() > 0) return;
-
-  sheet.appendRow([
+  const headers = [
     'วันที่ส่ง',
     'รหัสงาน',
     'ชื่อผู้ส่ง',
@@ -137,15 +151,27 @@ function ensureHeader_(sheet) {
     'ชื่อไฟล์',
     'ลิงก์ไฟล์',
     'สถานะ',
-    'เวลาบันทึกระบบ'
-  ]);
+    'เวลาบันทึกระบบ',
+    'รหัสไฟล์'
+  ];
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    return;
+  }
+
+  const lastColumn = sheet.getLastColumn();
+  if (lastColumn < headers.length) {
+    sheet.getRange(1, lastColumn + 1, 1, headers.length - lastColumn)
+      .setValues([headers.slice(lastColumn)]);
+  }
 }
 
 function listSubmissions_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return [];
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
   return values.map(function(row) {
     return {
       timestamp: formatSheetValue_(row[0]),
@@ -158,10 +184,68 @@ function listSubmissions_(sheet) {
       fileUrl: String(row[7] || '#'),
       status: String(row[8] || 'รอตรวจสอบ'),
       savedAt: formatSheetValue_(row[9]),
+      fileId: String(row[10] || extractDriveFileId_(row[7]) || ''),
       fileData: '',
       mimeType: ''
     };
   }).reverse();
+}
+
+function deleteSubmission_(data) {
+  const id = String(data.id || '').trim();
+  if (!id) {
+    throw new Error('ไม่พบรหัสงานที่ต้องการลบ');
+  }
+
+  const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  const spreadsheet = getOrCreateSpreadsheet_(folder);
+  const sheet = spreadsheet.getSheets()[0];
+  ensureHeader_(sheet);
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    throw new Error('ไม่พบข้อมูลในชีต');
+  }
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  for (let i = values.length - 1; i >= 0; i--) {
+    const row = values[i];
+    if (String(row[1] || '').trim() !== id) continue;
+
+    const rowNumber = i + 2;
+    const fileUrl = String(data.fileUrl || row[7] || '');
+    const fileId = String(data.fileId || row[10] || extractDriveFileId_(fileUrl) || '').trim();
+    let fileTrashed = false;
+
+    if (fileId) {
+      DriveApp.getFileById(fileId).setTrashed(true);
+      fileTrashed = true;
+    }
+
+    sheet.deleteRow(rowNumber);
+
+    return {
+      status: 'success',
+      deletedId: id,
+      deletedRow: rowNumber,
+      fileId: fileId,
+      fileTrashed: fileTrashed,
+      spreadsheetUrl: spreadsheet.getUrl()
+    };
+  }
+
+  throw new Error('ไม่พบรายการนี้ใน Google Sheet');
+}
+
+function extractDriveFileId_(url) {
+  const text = String(url || '');
+  const filePathMatch = text.match(/\/d\/([a-zA-Z0-9_-]{20,})/);
+  if (filePathMatch) return filePathMatch[1];
+
+  const idParamMatch = text.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
+  if (idParamMatch) return idParamMatch[1];
+
+  return '';
 }
 
 function formatSheetValue_(value) {
