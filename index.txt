@@ -508,11 +508,81 @@
             });
         }
 
+        function getStoredWorks() {
+            return JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
+        }
+
+        function saveStoredWorks(works) {
+            localStorage.setItem('er_selaphum_works', JSON.stringify(works));
+        }
+
+        async function fetchWorksFromGas() {
+            const gasUrl = (localStorage.getItem('er_selaphum_gas_url') || DEFAULT_GAS_URL).trim();
+            if (!gasUrl) return [];
+
+            const url = new URL(gasUrl);
+            url.searchParams.set('action', 'list');
+            url.searchParams.set('_', Date.now().toString());
+
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Google Apps Script ตอบกลับสถานะ ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (String(result.status || '').toLowerCase() === 'error') {
+                throw new Error(result.error || 'ไม่สามารถโหลดข้อมูลเดิมจาก Google Apps Script ได้');
+            }
+
+            return Array.isArray(result.data) ? result.data : (Array.isArray(result.works) ? result.works : []);
+        }
+
+        function getWorkKey(work) {
+            return work.id || `${work.timestamp || ''}|${work.senderName || ''}|${work.workTitle || ''}|${work.fileName || ''}`;
+        }
+
+        function mergeWorks(remoteWorks, localWorks) {
+            const merged = new Map();
+
+            [...remoteWorks, ...localWorks].forEach(work => {
+                const key = getWorkKey(work);
+                if (!key || merged.has(key)) return;
+                merged.set(key, {
+                    ...work,
+                    fileUrl: work.fileUrl || '#',
+                    fileData: work.fileData || '',
+                    mimeType: work.mimeType || '',
+                    status: work.status || 'รอตรวจสอบ'
+                });
+            });
+
+            return Array.from(merged.values());
+        }
+
         // Load and Render Dashboard Works & Charts
-        function loadWorks() {
+        async function loadWorks() {
+            const localWorks = getStoredWorks();
+            renderWorks(localWorks);
+
+            try {
+                const remoteWorks = await fetchWorksFromGas();
+                if (remoteWorks.length > 0) {
+                    const mergedWorks = mergeWorks(remoteWorks, localWorks);
+                    saveStoredWorks(mergedWorks);
+                    renderWorks(mergedWorks);
+                }
+            } catch (error) {
+                console.warn('Load remote works failed:', error);
+            }
+        }
+
+        function renderWorks(works) {
             const tbody = document.getElementById('work-table-body');
             const emptyState = document.getElementById('empty-state');
-            const works = JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
 
             // Update stats
             document.getElementById('stat-total').textContent = works.length;
@@ -649,21 +719,21 @@
 
         // Toggle Status
         function toggleStatus(index) {
-            let works = JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
+            let works = getStoredWorks();
             if (works[index]) {
                 works[index].status = works[index].status === 'รอตรวจสอบ' ? 'ตรวจสอบแล้ว' : 'รอตรวจสอบ';
-                localStorage.setItem('er_selaphum_works', JSON.stringify(works));
-                loadWorks();
+                saveStoredWorks(works);
+                renderWorks(works);
             }
         }
 
         // Delete Work
         function deleteWork(index) {
             if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
-                let works = JSON.parse(localStorage.getItem('er_selaphum_works') || '[]');
+                let works = getStoredWorks();
                 works.splice(index, 1);
-                localStorage.setItem('er_selaphum_works', JSON.stringify(works));
-                loadWorks();
+                saveStoredWorks(works);
+                renderWorks(works);
             }
         }
 

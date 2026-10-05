@@ -2,6 +2,28 @@ const DRIVE_FOLDER_ID = '16qGODaATJmWlSpXJy1kIvhtxz1OOc6NB';
 const SPREADSHEET_NAME = 'ER Selaphum Hospital Submissions';
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.action === 'list') {
+    try {
+      const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+      const spreadsheet = getOrCreateSpreadsheet_(folder);
+      const sheet = spreadsheet.getSheets()[0];
+      ensureHeader_(sheet);
+      const works = listSubmissions_(sheet);
+
+      return jsonOutput_({
+        status: 'success',
+        data: works,
+        works: works,
+        spreadsheetUrl: spreadsheet.getUrl()
+      });
+    } catch (error) {
+      return jsonOutput_({
+        status: 'error',
+        error: 'ไม่สามารถโหลดข้อมูลเดิมได้: ' + error.toString()
+      });
+    }
+  }
+
   if (e && e.parameter && e.parameter.action === 'ping') {
     return jsonOutput_({
       status: 'success',
@@ -117,6 +139,37 @@ function ensureHeader_(sheet) {
     'สถานะ',
     'เวลาบันทึกระบบ'
   ]);
+}
+
+function listSubmissions_(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  return values.map(function(row) {
+    return {
+      timestamp: formatSheetValue_(row[0]),
+      id: String(row[1] || ''),
+      senderName: String(row[2] || ''),
+      department: String(row[3] || ''),
+      workTitle: String(row[4] || ''),
+      workDetail: String(row[5] || ''),
+      fileName: String(row[6] || ''),
+      fileUrl: String(row[7] || '#'),
+      status: String(row[8] || 'รอตรวจสอบ'),
+      savedAt: formatSheetValue_(row[9]),
+      fileData: '',
+      mimeType: ''
+    };
+  }).reverse();
+}
+
+function formatSheetValue_(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) {
+    return Utilities.formatDate(value, 'Asia/Bangkok', 'dd/MM/yyyy HH:mm');
+  }
+
+  return value === null || value === undefined ? '' : String(value);
 }
 
 function sanitizeFileName_(fileName) {
